@@ -5,11 +5,11 @@ from .utils import parse_salary_range
 class JobApplicationFilter(django_filters.FilterSet):
     status = django_filters.CharFilter(field_name='status')
     employment_type = django_filters.CharFilter(field_name='employment_type')
-    salary_range = django_filters.CharFilter(method='filter_salary_range')
+    salary_range = django_filters.CharFilter(method='filter_salary_range', label='Salary range (min-max)')
 
     class Meta:
         model = JobApplication
-        fields = ['status', 'employment_type']
+        fields = ['status', 'employment_type', 'salary_range']
 
     def filter_salary_range(self, queryset, name, value):
         min_salary, max_salary = parse_salary_range(value)
