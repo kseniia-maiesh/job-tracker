@@ -54,3 +54,4 @@ export type AppAction =
   | { type: 'DELETE_JOB'; payload: number }
   | { type: 'TOGGLE_THEME' }
   | { type: 'UPDATE_JOB'; payload: DetailItem }
+  | { type: 'UPDATE_JOB_STATUS'; payload: { id: number; status: string } }

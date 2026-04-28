@@ -89,6 +89,16 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         ),
       };
 
+    case 'UPDATE_JOB_STATUS':
+      return {
+        ...state,
+        jobs: state.jobs.map((job) =>
+          job.id === action.payload.id
+            ? { ...job, status: action.payload.status }
+            : job
+        ),
+      };
+
     case 'ADD_JOB':
       return {
         ...state,
