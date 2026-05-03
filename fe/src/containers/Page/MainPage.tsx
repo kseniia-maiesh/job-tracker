@@ -1,16 +1,24 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState, useReducer } from 'react';
 import { Layout, Card, Typography, Row, Col } from 'antd';
-import { useReducer } from 'react';
-import type { DragEndEvent  } from '@dnd-kit/core';
-import { useDroppable, DndContext } from '@dnd-kit/core';
+
+import {
+  DndContext,
+  DragOverlay,
+  useDroppable,
+  type DragEndEvent,
+  type DragStartEvent,
+} from '@dnd-kit/core';
+
 import {
   SortableContext,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import JobCard from '../../components/JobCard';
 
+import JobCard from '../../components/JobCard';
 import { appReducer, initialState } from '../../state/reducer';
 import { loadJobs, updateJobStatus } from '../../state/actions';
+
+import './MainPage.css';
 
 const { Title } = Typography;
 const { Content } = Layout;
@@ -23,6 +31,9 @@ type Job = {
   salary: number;
 };
 
+const STATUSES = ['interview', 'test', 'offer', 'rejected', 'applied'];
+
+// 🔥 Column
 const Column = ({
   id,
   children,
@@ -30,19 +41,21 @@ const Column = ({
   id: string;
   children: React.ReactNode;
 }) => {
-  const { setNodeRef } = useDroppable({ id });
+  const { setNodeRef, isOver } = useDroppable({ id });
 
   return (
-    <div ref={setNodeRef} style={{ minHeight: 200 }}>
+    <div
+      ref={setNodeRef}
+      className={`column-drop ${isOver ? 'over' : ''}`}
+    >
       {children}
     </div>
   );
 };
 
-const STATUSES = ['applied', 'interview', 'test', 'offer', 'rejected'];
-
 const MainPage: React.FC = () => {
   const [state, dispatch] = useReducer(appReducer, initialState);
+  const [activeJob, setActiveJob] = useState<Job | null>(null);
 
   useEffect(() => {
     loadJobs(dispatch, state.pagination.currentPage, state.filters);
@@ -50,7 +63,7 @@ const MainPage: React.FC = () => {
 
   const groupedJobs = useMemo(() => {
     const map: Record<string, Job[]> = {};
-    STATUSES.forEach((status) => (map[status] = []));
+    STATUSES.forEach((s) => (map[s] = []));
 
     state.jobs.forEach((job: Job) => {
       if (!map[job.status]) map[job.status] = [];
@@ -60,45 +73,58 @@ const MainPage: React.FC = () => {
     return map;
   }, [state.jobs]);
 
-const handleDragEnd = (event: DragEndEvent) => {
-  const { active, over } = event;
+  const handleDragStart = (event: DragStartEvent) => {
+    const job = state.jobs.find(j => j.id === Number(event.active.id));
+    if (job) setActiveJob(job);
+  };
 
-  if (!over) return;
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveJob(null);
 
-  const jobId = Number(active.id);
+    if (!over) return;
 
-  let newStatus: string;
+    const jobId = Number(active.id);
 
-  if (STATUSES.includes(over.id as string)) {
-    newStatus = over.id as string;
-  } else {
-    const targetJob = state.jobs.find((j: Job) => j.id === Number(over.id));
-    if (!targetJob) return;
-    newStatus = targetJob.status;
-  }
+    let newStatus: string;
 
-  const job = state.jobs.find((j: Job) => j.id === jobId);
-  if (!job || job.status === newStatus) return;
+    if (STATUSES.includes(over.id as string)) {
+      newStatus = over.id as string;
+    } else {
+      const target = state.jobs.find(j => j.id === Number(over.id));
+      if (!target) return;
+      newStatus = target.status;
+    }
 
-  updateJobStatus(dispatch, jobId, newStatus);
-};
+    const job = state.jobs.find(j => j.id === jobId);
+    if (!job || job.status === newStatus) return;
+
+    updateJobStatus(dispatch, jobId, newStatus);
+
+  };
 
   return (
-    <Layout style={{ minHeight: '100vh', padding: 24 }}>
+    <Layout className='page'>
       <Content>
-        <Title level={2}>Job Tracker</Title>
+        <Title className='title'>Job Tracker</Title>
 
-        <DndContext onDragEnd={handleDragEnd}>
-          <Row gutter={16} align='top'>
+        <DndContext
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          <Row gutter={16}>
             {STATUSES.map((status) => (
               <Col span={4} key={status}>
-                <Card title={status.toUpperCase()} bordered>
+                <Card
+                  className={`column-card status-${status}`}
+                  title={<span className='column-title'>{status.toUpperCase()}</span>}
+                >
                   <Column id={status}>
                     <SortableContext
-                      items={groupedJobs[status].map((j) => j.id)}
+                      items={groupedJobs[status].map(j => j.id)}
                       strategy={verticalListSortingStrategy}
                     >
-                      {groupedJobs[status].map((job) => (
+                      {groupedJobs[status].map(job => (
                         <JobCard key={job.id} job={job} />
                       ))}
                     </SortableContext>
@@ -107,6 +133,14 @@ const handleDragEnd = (event: DragEndEvent) => {
               </Col>
             ))}
           </Row>
+
+          <DragOverlay>
+            {activeJob ? (
+              <div className='drag-overlay'>
+                <JobCard job={activeJob} />
+              </div>
+            ) : null}
+          </DragOverlay>
         </DndContext>
       </Content>
     </Layout>
