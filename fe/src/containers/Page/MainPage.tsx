@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo } from 'react';
 import { Layout, Card, Typography, Row, Col } from 'antd';
 import { useReducer } from 'react';
-import { DndContext } from '@dnd-kit/core';
-import type { DragEndEvent } from '@dnd-kit/core';
+import type { DragEndEvent  } from '@dnd-kit/core';
+import { useDroppable, DndContext } from '@dnd-kit/core';
 import {
   SortableContext,
   verticalListSortingStrategy,
@@ -10,7 +10,7 @@ import {
 import JobCard from '../../components/JobCard';
 
 import { appReducer, initialState } from '../../state/reducer';
-import { loadDetails } from '../../state/actions';
+import { loadJobs, updateJobStatus } from '../../state/actions';
 
 const { Title } = Typography;
 const { Content } = Layout;
@@ -23,13 +23,29 @@ type Job = {
   salary: number;
 };
 
+const Column = ({
+  id,
+  children,
+}: {
+  id: string;
+  children: React.ReactNode;
+}) => {
+  const { setNodeRef } = useDroppable({ id });
+
+  return (
+    <div ref={setNodeRef} style={{ minHeight: 200 }}>
+      {children}
+    </div>
+  );
+};
+
 const STATUSES = ['applied', 'interview', 'test', 'offer', 'rejected'];
 
 const MainPage: React.FC = () => {
   const [state, dispatch] = useReducer(appReducer, initialState);
 
   useEffect(() => {
-    loadDetails(dispatch, state.pagination.currentPage, state.filters);
+    loadJobs(dispatch, state.pagination.currentPage, state.filters);
   }, []);
 
   const groupedJobs = useMemo(() => {
@@ -44,22 +60,28 @@ const MainPage: React.FC = () => {
     return map;
   }, [state.jobs]);
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
+const handleDragEnd = (event: DragEndEvent) => {
+  const { active, over } = event;
 
-    if (!over) return;
+  if (!over) return;
 
-    const jobId = Number(active.id);
-    const newStatus = over.id as string;
+  const jobId = Number(active.id);
 
-    const job = state.jobs.find((j: Job) => j.id === jobId);
-    if (!job || job.status === newStatus) return;
+  let newStatus: string;
 
-    dispatch({
-      type: 'UPDATE_JOB_STATUS',
-      payload: { id: jobId, status: newStatus },
-    });
-  };
+  if (STATUSES.includes(over.id as string)) {
+    newStatus = over.id as string;
+  } else {
+    const targetJob = state.jobs.find((j: Job) => j.id === Number(over.id));
+    if (!targetJob) return;
+    newStatus = targetJob.status;
+  }
+
+  const job = state.jobs.find((j: Job) => j.id === jobId);
+  if (!job || job.status === newStatus) return;
+
+  updateJobStatus(dispatch, jobId, newStatus);
+};
 
   return (
     <Layout style={{ minHeight: '100vh', padding: 24 }}>
@@ -67,18 +89,20 @@ const MainPage: React.FC = () => {
         <Title level={2}>Job Tracker</Title>
 
         <DndContext onDragEnd={handleDragEnd}>
-          <Row gutter={16} align="top">
+          <Row gutter={16} align='top'>
             {STATUSES.map((status) => (
               <Col span={4} key={status}>
                 <Card title={status.toUpperCase()} bordered>
-                  <SortableContext
-                    items={groupedJobs[status].map((j) => j.id)}
-                    strategy={verticalListSortingStrategy}
-                  >
-                    {groupedJobs[status].map((job) => (
-                      <JobCard key={job.id} job={job} />
-                    ))}
-                  </SortableContext>
+                  <Column id={status}>
+                    <SortableContext
+                      items={groupedJobs[status].map((j) => j.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      {groupedJobs[status].map((job) => (
+                        <JobCard key={job.id} job={job} />
+                      ))}
+                    </SortableContext>
+                  </Column>
                 </Card>
               </Col>
             ))}

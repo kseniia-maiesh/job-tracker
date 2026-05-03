@@ -1,38 +1,37 @@
-import React from 'react';
-import { Card, Typography } from 'antd';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { Card } from 'antd';
 
-const { Text } = Typography;
-
-type Props = {
-  job: {
-    id: number;
-    company: string;
-    position: string;
-    salary: number;
-  };
+type Job = {
+  id: number;
+  company: string;
+  position: string;
+  status: string;
+  salary: number;
 };
 
-const JobCard: React.FC<Props> = ({ job }) => {
-  const { attributes, listeners, setNodeRef, transform, transition } =
-    useSortable({ id: job.id });
+const JobCard = ({ job }: { job: Job }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id: job.id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    marginBottom: 12,
-    cursor: 'grab',
+    marginBottom: 8,
   };
 
   return (
-    <Card ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <Text strong>{job.position}</Text>
-      <br />
-      <Text type="secondary">{job.company}</Text>
-      <br />
-      <Text>${job.salary}</Text>
-    </Card>
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      <Card size='small'>
+        <div>{job.company}</div>
+        <div>{job.position}</div>
+      </Card>
+    </div>
   );
 };
 

@@ -1,8 +1,8 @@
 import type { Dispatch } from 'react';
-import type { AppAction, DetailFormData, FilterState } from '../types/types';
+import type { AppAction, JobFormData, FilterState } from '../types/types';
 import { api } from '../services/api';
 
-export const loadDetails = async (
+export const loadJobs = async (
   dispatch: Dispatch<AppAction>,
   page: number = 1,
   filters: FilterState,
@@ -15,7 +15,8 @@ export const loadDetails = async (
     params.append('page', page.toString());
 
     if (filters.status) params.append('status', filters.status.toString());
-    if (filters.employment_type) params.append('employment_type', filters.employment_type);
+    if (filters.employment_type)
+      params.append('employment_type', filters.employment_type);
 
     const response = await api.get(`/?${params.toString()}`);
 
@@ -51,9 +52,9 @@ export const setPage = (dispatch: Dispatch<AppAction>, page: number) => {
   dispatch({ type: 'SET_PAGE', payload: page });
 };
 
-export const createDetail = async (
+export const createJob = async (
   dispatch: Dispatch<AppAction>,
-  formData: DetailFormData,
+  formData: JobFormData,
 ) => {
   try {
     dispatch({ type: 'SET_LOADING', payload: true });
@@ -74,10 +75,10 @@ export const createDetail = async (
   }
 };
 
-export const updateDetail = async (
+export const updateJob = async (
   dispatch: Dispatch<AppAction>,
   id: number,
-  formData: DetailFormData,
+  formData: JobFormData,
 ) => {
   try {
     dispatch({ type: 'SET_LOADING', payload: true });
@@ -122,6 +123,14 @@ export const deletejob = async (
   } finally {
     dispatch({ type: 'SET_LOADING', payload: false });
   }
+};
+
+export const updateJobStatus = async (
+  dispatch: Dispatch<AppAction>,
+  id: number,
+  status: string,
+) => {
+  dispatch({ type: 'UPDATE_JOB_STATUS', payload: { id: id, status: status } });
 };
 
 export const toggleTheme = (dispatch: Dispatch<AppAction>) => {
