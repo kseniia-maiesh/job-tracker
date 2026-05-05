@@ -33,7 +33,6 @@ type Job = {
 
 const STATUSES = ['interview', 'test', 'offer', 'rejected', 'applied'];
 
-// 🔥 Column
 const Column = ({
   id,
   children,
